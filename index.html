@@ -365,7 +365,14 @@
     // Inicializar campo de fecha/hora a la fecha actual
     function setDefaultDatetime() {
       const now = new Date();
-      datetimeInput.value = now.toISOString().substring(0,16);
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0'); // Los meses en JavaScript son 0-indexed
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+
+      const localDatetimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+      datetimeInput.value = localDatetimeString;
     }
     setDefaultDatetime();
 
