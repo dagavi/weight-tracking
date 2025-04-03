@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tracking de Peso</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Estilos generales */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      color: #333;
+      /* Se quita el display: flex; para evitar que estreche el contenido */
+    }
+    header {
+      background: #4CAF50;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    /* Restauramos el max-width y margin auto para que el contenido no quede tan estrecho */
+    main {
+      padding: 1rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    /* Pestañas (tabs) */
+    .tab-nav {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 1rem;
+    }
+    .tab-nav button {
+      flex: 1;
+      padding: 0.8rem;
+      border: none;
+      background: #e0e0e0;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .tab-nav button.active {
+      background: #4CAF50;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    /* Formulario de entrada */
+    .entry-form {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .entry-form label {
+      display: block;
+      margin-top: 0.5rem;
+    }
+    /* Contenedor para la "rueda" y botones */
+    .spinner-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .weight-spinner {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      user-select: none;
+      background: #fff;
+      cursor: ns-resize;
+      min-width: 80px;
+    }
+    .spin-btn {
+      background: #4CAF50;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .entry-form input[type="datetime-local"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .entry-form button {
+      margin-top: 1rem;
+      padding: 0.7rem;
+      width: 100%;
+      background: #4CAF50;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    /* Listados de registros */
+    .weight-list {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+      overflow-y: auto;
+    }
+    /* Ajustamos la altura para que el listado pueda usar el espacio vertical */
+    #fullList {
+      height: calc(100vh - 320px);
+    }
+    .weight-item {
+      border-bottom: 1px solid #eee;
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+    .weight-item:last-child {
+      border-bottom: none;
+    }
+    /* En la lista completa se marca el seleccionado */
+    .weight-item.selected {
+      background: #ffe0e0;
+    }
+    /* Sección de gráfica y filtros */
+    .chart-section {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+    }
+    .chart-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .chart-filters button,
+    .chart-filters input[type="date"] {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+    }
+    .chart-filters button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      flex: 1;
+      min-width: 100px;
+    }
+    /* Pestaña de gestión de datos */
+    .data-management {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .data-management button {
+      margin: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #2196F3;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    /* Botón para borrar datos en Gestión */
+    .delete-all-btn {
+      background: #f44336;
+    }
+    /* Botón para borrar registros en la lista */
+    .delete-btn {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+    /* Responsive */
+    @media (min-width: 768px) {
+      .entry-form, .weight-list, .chart-section, .data-management {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Tracking de Peso</h1>
+  </header>
+  <nav class="tab-nav">
+    <button id="tabBtn-add" class="active">Añadir peso</button>
+    <button id="tabBtn-list">Lista de pesos</button>
+    <button id="tabBtn-chart">Gráfica</button>
+    <button id="tabBtn-data">Gestión</button>
+  </nav>
+  <main>
+    <!-- Pestaña Añadir peso -->
+    <section id="tab-add" class="tab-content active">
+      <div class="entry-form">
+        <h2>Añadir peso</h2>
+        <label for="weightSpinner">Peso (Kg):</label>
+        <div class="spinner-container">
+          <button id="spinUp" class="spin-btn" type="button">&#9650;</button>
+          <div id="weightSpinner" class="weight-spinner" tabindex="0">70.0</div>
+          <button id="spinDown" class="spin-btn" type="button">&#9660;</button>
+        </div>
+        <label for="datetime">Fecha y hora:</label>
+        <input type="datetime-local" id="datetime">
+        <button id="addWeightBtn">Añadir peso</button>
+      </div>
+      <!-- Últimos 5 pesos añadidos -->
+      <div class="weight-list" id="recentList">
+        <h3>Últimos 5 pesos</h3>
+        <!-- Se actualizará con los 5 registros más recientes -->
+      </div>
+    </section>
+
+    <!-- Pestaña Lista de pesos -->
+    <section id="tab-list" class="tab-content">
+      <div class="weight-list" id="fullList">
+        <h2>Historial de pesos</h2>
+        <!-- Se actualizará con todos los registros (más nuevos a más viejos) -->
+      </div>
+      <button id="deleteSelectedBtn" class="delete-btn" style="display:none">Borrar seleccionados</button>
+    </section>
+
+    <!-- Pestaña Gráfica -->
+    <section id="tab-chart" class="tab-content">
+      <div class="chart-section">
+        <h2>Gráfica</h2>
+        <div class="chart-filters">
+          <button data-range="1">Último mes</button>
+          <button data-range="3">Últimos 3 meses</button>
+          <button data-range="6">Últimos 6 meses</button>
+          <button data-range="12">Último año</button>
+          <!-- Filtros personalizados -->
+          <input type="date" id="customStart" title="Fecha inicio">
+          <input type="date" id="customEnd" title="Fecha fin">
+          <button id="customFilterBtn">Filtrar</button>
+        </div>
+        <canvas id="weightChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Pestaña Gestión de datos -->
+    <section id="tab-data" class="tab-content">
+      <div class="data-management">
+        <h2>Gestión de datos</h2>
+        <button id="exportBtn">Exportar datos</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none">
+        <button id="importBtn">Importar datos</button>
+        <br>
+        <button id="deleteAllBtn" class="delete-all-btn">Borrar datos</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ---------------------------
+    // Gestión de pestañas
+    // ---------------------------
+    const tabs = {
+      add: document.getElementById("tab-add"),
+      list: document.getElementById("tab-list"),
+      chart: document.getElementById("tab-chart"),
+      data: document.getElementById("tab-data")
+    };
+    const tabButtons = {
+      add: document.getElementById("tabBtn-add"),
+      list: document.getElementById("tabBtn-list"),
+      chart: document.getElementById("tabBtn-chart"),
+      data: document.getElementById("tabBtn-data")
+    };
+    function showTab(tabName) {
+      Object.keys(tabs).forEach(key => {
+        tabs[key].classList.toggle("active", key === tabName);
+        tabButtons[key].classList.toggle("active", key === tabName);
+      });
+      // Al cambiar a la pestaña de gráfica, se actualiza con filtro de último mes
+      if(tabName === "chart"){
+        updateChart({ months: 1 });
+      }
+    }
+    tabButtons.add.addEventListener("click", () => showTab("add"));
+    tabButtons.list.addEventListener("click", () => showTab("list"));
+    tabButtons.chart.addEventListener("click", () => showTab("chart"));
+    tabButtons.data.addEventListener("click", () => showTab("data"));
+
+    // ---------------------------
+    // Variables generales y carga de datos
+    // ---------------------------
+    let weights = JSON.parse(localStorage.getItem("weights")) || [];
+    // Forzar orden descendente: más nuevos primero
+    weights.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+    // Valor inicial para el spinner: último peso o 70.0 si no hay datos
+    let currentWeight = weights.length > 0 ? weights[0].weight : 70.0;
+
+    // ---------------------------
+    // Elementos del spinner y formulario de añadir peso
+    // ---------------------------
+    const weightSpinner = document.getElementById("weightSpinner");
+    const datetimeInput = document.getElementById("datetime");
+    const addWeightBtn = document.getElementById("addWeightBtn");
+    const spinUpBtn = document.getElementById("spinUp");
+    const spinDownBtn = document.getElementById("spinDown");
+
+    function updateSpinnerDisplay() {
+      weightSpinner.innerText = currentWeight.toFixed(1);
+    }
+    updateSpinnerDisplay();
+
+    // Incrementar / decrementar el peso
+    function increaseWeight() {
+      currentWeight += 0.1;
+      updateSpinnerDisplay();
+    }
+    function decreaseWeight() {
+      currentWeight -= 0.1;
+      updateSpinnerDisplay();
+    }
+    // Eventos del spinner: rueda del ratón y gestos táctiles
+    weightSpinner.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      e.deltaY < 0 ? increaseWeight() : decreaseWeight();
+    });
+    let touchStartY = null;
+    weightSpinner.addEventListener('touchstart', function(e) {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: false });
+    weightSpinner.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+      let touchCurrentY = e.touches[0].clientY;
+      let diff = touchStartY - touchCurrentY;
+      if(Math.abs(diff) >= 10) {
+        diff > 0 ? increaseWeight() : decreaseWeight();
+        touchStartY = touchCurrentY;
+      }
+    }, { passive: false });
+    spinUpBtn.addEventListener("click", increaseWeight);
+    spinDownBtn.addEventListener("click", decreaseWeight);
+
+    // Inicializar campo de fecha/hora a la fecha actual
+    function setDefaultDatetime() {
+      const now = new Date();
+      datetimeInput.value = now.toISOString().substring(0,16);
+    }
+    setDefaultDatetime();
+
+    // ---------------------------
+    // Guardar y actualizar datos
+    // ---------------------------
+    function saveWeights() {
+      localStorage.setItem("weights", JSON.stringify(weights));
+    }
+    // Actualizar lista completa (pestaña Lista de pesos) en orden descendente
+    function updateFullList() {
+      const fullList = document.getElementById("fullList");
+      let html = "<ul style='list-style:none;padding:0;margin:0;'>";
+      weights.forEach(entry => {
+        const date = new Date(entry.datetime);
+        html += `<li class="weight-item" data-id="${entry.id}"><strong>${entry.weight} Kg</strong> - ${date.toLocaleString()}</li>`;
+      });
+      html += "</ul>";
+      fullList.innerHTML = html;
+      // Asignar evento de selección a cada elemento
+      fullList.querySelectorAll(".weight-item").forEach(item => {
+        item.addEventListener("click", function() {
+          this.classList.toggle("selected");
+          updateDeleteButton();
+        });
+      });
+    }
+    // Actualizar lista de los 5 pesos más recientes (pestaña Añadir peso)
+    function updateRecentList() {
+      const recentList = document.getElementById("recentList");
+      let html = "<ul style='list-style:none;padding:0;margin:0;'>";
+      const recentWeights = weights.slice(0, 5);
+      recentWeights.forEach(entry => {
+        const date = new Date(entry.datetime);
+        html += `<li class="weight-item"><strong>${entry.weight} Kg</strong> - ${date.toLocaleString()}</li>`;
+      });
+      html += "</ul>";
+      recentList.innerHTML = html;
+    }
+    // Actualizar ambos listados
+    function updateLists() {
+      updateFullList();
+      updateRecentList();
+    }
+
+    // ---------------------------
+    // Añadir un nuevo peso (no se restablece el spinner)
+    // ---------------------------
+    function addWeight() {
+      const weightValue = parseFloat(currentWeight.toFixed(1));
+      const dateValue = new Date(datetimeInput.value);
+      if(isNaN(weightValue)) {
+        alert("El valor del peso no es correcto.");
+        return;
+      }
+      if(isNaN(dateValue.getTime())) {
+        alert("Introduce una fecha válida.");
+        return;
+      }
+      // Crear un id único usando Date.now()
+      const newEntry = {
+        id: Date.now(),
+        weight: weightValue,
+        datetime: dateValue.toISOString()
+      };
+      weights.push(newEntry);
+      // Ordenar de forma descendente (más nuevos primero)
+      weights.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+      saveWeights();
+      updateLists();
+      setDefaultDatetime();
+    }
+    addWeightBtn.addEventListener("click", addWeight);
+
+    // ---------------------------
+    // Eliminar pesos seleccionados (pestaña Lista de pesos)
+    // ---------------------------
+    const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+    function updateDeleteButton() {
+      const selected = document.querySelectorAll("#fullList .weight-item.selected");
+      deleteSelectedBtn.style.display = selected.length > 0 ? "block" : "none";
+    }
+    deleteSelectedBtn.addEventListener("click", function() {
+      const selectedItems = document.querySelectorAll("#fullList .weight-item.selected");
+      if(selectedItems.length === 0) return;
+      if(confirm("¿Seguro que deseas borrar los registros seleccionados?")) {
+        selectedItems.forEach(item => {
+          const id = item.getAttribute("data-id");
+          weights = weights.filter(entry => entry.id != id);
+        });
+        saveWeights();
+        updateLists();
+        updateChart();
+        updateDeleteButton();
+      }
+    });
+
+    // ---------------------------
+    // Gráfica con Chart.js y filtros
+    // ---------------------------
+    const ctx = document.getElementById("weightChart").getContext("2d");
+    let chart = null;
+    function filterWeights({ months = null, start = null, end = null } = {}) {
+      let filtered = weights.slice();
+      if(months) {
+        const now = new Date();
+        const past = new Date();
+        past.setMonth(now.getMonth() - months);
+        filtered = filtered.filter(entry => new Date(entry.datetime) >= past);
+      }
+      if(start && end) {
+        const s = new Date(start);
+        const e = new Date(end);
+        e.setHours(23,59,59,999);
+        filtered = filtered.filter(entry => {
+          const d = new Date(entry.datetime);
+          return d >= s && d <= e;
+        });
+      }
+      // Orden ascendente para la gráfica (cronológico)
+      return filtered.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    }
+    function updateChart(filterOptions = {}) {
+      const filtered = filterWeights(filterOptions);
+      const labels = filtered.map(entry => {
+        const d = new Date(entry.datetime);
+        return d.toLocaleDateString() + " " + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      });
+      const data = filtered.map(entry => entry.weight);
+      if(chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Peso (Kg)',
+            data: data,
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+            tension: 0.2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.parsed.y + " Kg";
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                autoSkip: true,
+                maxTicksLimit: 10
+              }
+            }
+          }
+        }
+      });
+    }
+    // Eventos para botones de filtros predefinidos
+    const chartFilterButtons = document.querySelectorAll(".chart-filters button[data-range]");
+    chartFilterButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        const months = parseInt(button.getAttribute("data-range"));
+        document.getElementById("customStart").value = "";
+        document.getElementById("customEnd").value = "";
+        updateChart({ months: months });
+      });
+    });
+    document.getElementById("customFilterBtn").addEventListener("click", () => {
+      const customStart = document.getElementById("customStart").value;
+      const customEnd = document.getElementById("customEnd").value;
+      if(!customStart || !customEnd) {
+        alert("Selecciona ambas fechas para filtrar.");
+        return;
+      }
+      updateChart({ start: customStart, end: customEnd });
+    });
+
+    // ---------------------------
+    // Gestión de exportar/importar y borrar datos
+    // ---------------------------
+    const exportBtn = document.getElementById("exportBtn");
+    const importBtn = document.getElementById("importBtn");
+    const importFile = document.getElementById("importFile");
+    exportBtn.addEventListener("click", () => {
+      const dataStr = JSON.stringify(weights, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "datos_peso.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+    importBtn.addEventListener("click", () => {
+      importFile.click();
+    });
+    importFile.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (Array.isArray(importedData)) {
+            weights = importedData;
+            weights.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+            saveWeights();
+            updateLists();
+            updateChart();
+            currentWeight = weights.length > 0 ? weights[0].weight : 70.0;
+            updateSpinnerDisplay();
+            alert("Datos importados correctamente.");
+          } else {
+            alert("Formato de datos incorrecto.");
+          }
+        } catch (error) {
+          alert("Error al leer el archivo.");
+        }
+      };
+      reader.readAsText(file);
+    });
+    // Botón para borrar todos los datos
+    const deleteAllBtn = document.getElementById("deleteAllBtn");
+    deleteAllBtn.addEventListener("click", () => {
+      if(confirm("¿Seguro que deseas borrar todos los datos?")) {
+        weights = [];
+        saveWeights();
+        updateLists();
+        updateChart();
+        // Reiniciar el spinner a 70.0
+        currentWeight = 70.0;
+        updateSpinnerDisplay();
+        alert("Todos los datos han sido borrados.");
+      }
+    });
+
+    // ---------------------------
+    // Inicialización final
+    // ---------------------------
+    updateLists();
+    updateChart({ months: 1 });
+  </script>
+</body>
+</html>
