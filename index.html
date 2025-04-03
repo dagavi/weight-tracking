@@ -6,6 +6,7 @@
   <title>Tracking de Peso</title>
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
     /* Estilos generales */
     body {
@@ -493,48 +494,56 @@
         const d = new Date(entry.datetime);
         return d.toLocaleDateString() + " " + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       });
-      const data = filtered.map(entry => entry.weight);
-      if(chart) chart.destroy();
-      chart = new Chart(ctx, {
+      // Prepara los datos en formato {x, y} para la escala de tiempo
+      const chartData = filtered.map(entry => ({
+        x: new Date(entry.datetime),
+        y: entry.weight
+      }));
+      const data = {
+        datasets: [{
+          label: 'Peso',
+          fill: false,
+          data: chartData,
+        }]
+      };
+      const config = {
         type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Peso (Kg)',
-            data: data,
-            borderColor: '#4CAF50',
-            backgroundColor: 'rgba(76, 175, 80, 0.2)',
-            tension: 0.2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            fill: true
-          }]
-        },
+        data: data,
         options: {
           responsive: true,
           interaction: {
-            mode: 'index',
-            intersect: false,
+            mode: 'nearest',
+            intersect: true,
           },
           plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return context.parsed.y + " Kg";
-                }
-              }
+            title: {
+              text: 'Peso',
+              display: true
             }
           },
           scales: {
             x: {
-              ticks: {
-                autoSkip: true,
-                maxTicksLimit: 10
+              type: 'time',
+              time: {
+                // Luxon format string
+                tooltipFormat: 'dd T'
+              },
+              title: {
+                display: true,
+                text: 'Fecha'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Peso'
               }
             }
-          }
-        }
-      });
+          },
+        },
+      };
+      if(chart) chart.destroy();
+      chart = new Chart(ctx, config);
     }
     // Eventos para botones de filtros predefinidos
     const chartFilterButtons = document.querySelectorAll(".chart-filters button[data-range]");
