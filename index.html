@@ -525,7 +525,10 @@
           plugins: {
             title: {
               text: 'Peso',
-              display: true
+              display: false
+            },
+            legend: {
+              display: false // Esta línea oculta la leyenda
             }
           },
           scales: {
@@ -550,6 +553,11 @@
               title: {
                 display: true,
                 text: 'Peso'
+              },
+              ticks: {
+                callback: function(value) {
+                  return value + ' Kg';
+                }
               }
             }
           },
