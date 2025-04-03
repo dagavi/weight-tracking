@@ -532,8 +532,14 @@
             x: {
               type: 'time',
               time: {
-                // Luxon format string
-                tooltipFormat: 'dd T'
+                tooltipFormat: 'dd-MM-yyyy HH:mm',
+                displayFormats: {
+                  hour: 'HH:mm',   // Formato para cuando la unidad principal es la hora
+                  minute: 'HH:mm', // Formato para cuando la unidad principal son los minutos
+                  second: 'HH:mm:ss', // Formato para cuando la unidad principal son los segundos
+                  millisecond: 'HH:mm:ss.SSS' // Formato para cuando la unidad principal son los milisegundos
+                  // Puedes añadir formatos para otras unidades si es necesario (ej: day, month, year)
+                }
               },
               title: {
                 display: true,
