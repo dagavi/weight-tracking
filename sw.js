@@ -4,6 +4,7 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll([
+        '',
         'index.html',
         "manifest.json",
         'https://cdn.jsdelivr.net/npm/chart.js',
@@ -24,18 +25,29 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-self.addEventListener('fetch', function(event) {
-  event.respondWith(caches.open(CACHE_NAME).then((cache) => {
-    return cache.match(event.request).then((cachedResponse) => {
-      const fetchedResponse = fetch(event.request).then((networkResponse) => {
-        cache.put(event.request, networkResponse.clone());
-
-        return networkResponse;
-      });
-
-      return cachedResponse || fetchedResponse;
+function tryCacheAndUpdate(event, cache) {
+  return cache.match(event.request).then((cachedResponse) => {
+    const fetchedResponse = fetch(event.request).then((networkResponse) => {
+      cache.put(event.request, networkResponse.clone());
+      return networkResponse;
     });
-  }));
+
+    return cachedResponse || fetchedResponse;
+  });
+}
+
+function cacheFallbackNetwork(event, cache) {
+  return cache.match(event.request).then((cachedResponse) => {
+    return cachedResponse || fetch(event.request).then((networkResponse) => {
+      cache.put(event.request, networkResponse.clone());
+      return networkResponse;
+    });
+  });
+}
+
+self.addEventListener('fetch', function(event) {
+  event.respondWith(caches.open(CACHE_NAME).then((cache) => cacheFallbackNetwork(event, cache)
+));
 
 });
 
