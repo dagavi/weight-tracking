@@ -1,4 +1,4 @@
-var CACHE_NAME = 'static-assets-v4';
+var CACHE_NAME = 'static-assets-v1';
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
