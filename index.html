@@ -282,11 +282,11 @@
 
   <script>
     function updateReady(worker) {
+        console.log("ServiceWorker: Update ready");
         worker.postMessage({action: 'skipWaiting'});
     };
 
     function trackInstalling(worker) {
-      var indexController = this;
       worker.addEventListener('statechange', function() {
         if (worker.state == 'installed') {
           updateReady(worker);
@@ -320,11 +320,12 @@
 
         // Ensure refresh is only called once.
         // This works around a bug in "force update on reload".
-        var refreshing;
+        let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', function() {
           if (refreshing) return;
-          window.location.reload();
+          console.log("ServiceWorker: Refresh screen");
           refreshing = true;
+          window.location.reload();
         });
       });
     }
