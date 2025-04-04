@@ -1,10 +1,8 @@
-// V2
-
-var staticCacheName = 'static-assets-v1';
+var CACHE_NAME = 'static-assets-v2';
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open(staticCacheName).then(function(cache) {
+    caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll([
         'index.html',
         "manifest.json",
@@ -17,10 +15,17 @@ self.addEventListener('install', function(event) {
 
 self.addEventListener('activate', function(event) {
   console.log("ServiceWorker ativate");
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      );
+    })
+  );
 });
 
 self.addEventListener('fetch', function(event) {
-  event.respondWith(caches.open(staticCacheName).then((cache) => {
+  event.respondWith(caches.open(CACHE_NAME).then((cache) => {
     return cache.match(event.request).then((cachedResponse) => {
       const fetchedResponse = fetch(event.request).then((networkResponse) => {
         cache.put(event.request, networkResponse.clone());
