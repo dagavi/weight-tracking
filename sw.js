@@ -1,3 +1,5 @@
+// V2
+
 var staticCacheName = 'static-assets-v1';
 
 self.addEventListener('install', function(event) {
