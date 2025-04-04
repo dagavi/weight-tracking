@@ -1,0 +1,19 @@
+{
+  "short_name": "pesos",
+  "name": "Tracking de Peso",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "background_color": "#F4F6FE",
+  "display": "fullscreen",
+  "theme_color": "#F4F6FE"
+}

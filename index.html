@@ -7,6 +7,8 @@
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <link rel="manifest" href="manifest.json">
+
   <style>
     /* Estilos generales */
     body {
@@ -279,6 +281,57 @@
   </main>
 
   <script>
+    function updateReady(worker) {
+        worker.postMessage({action: 'skipWaiting'});
+    };
+
+    function trackInstalling(worker) {
+      var indexController = this;
+      worker.addEventListener('statechange', function() {
+        if (worker.state == 'installed') {
+          updateReady(worker);
+        }
+      });
+    }
+
+    function registerServiceWorker() {
+      if (!navigator.serviceWorker) return;
+
+      var indexController = this;
+
+      navigator.serviceWorker.register('sw.js').then(function(reg) {
+        if (!navigator.serviceWorker.controller) {
+          return;
+        }
+
+        if (reg.waiting) {
+          updateReady(reg.waiting);
+          return;
+        }
+
+        if (reg.installing) {
+          trackInstalling(reg.installing);
+          return;
+        }
+
+        reg.addEventListener('updatefound', function() {
+          trackInstalling(reg.installing);
+        });
+
+        // Ensure refresh is only called once.
+        // This works around a bug in "force update on reload".
+        var refreshing;
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          if (refreshing) return;
+          window.location.reload();
+          refreshing = true;
+        });
+      });
+    }
+
+    registerServiceWorker();
+
+
     // ---------------------------
     // Gestión de pestañas
     // ---------------------------
